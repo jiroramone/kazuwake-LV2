@@ -1,0 +1,108 @@
+body {
+  font-family: "Arial", sans-serif;
+  text-align: center;
+  background-color: #f0f8ff;
+  padding: 20px;
+}
+h1 {
+  font-size: 28px;
+  color: #444;
+}
+#question {
+  font-size: 24px;
+  margin-bottom: 10px;
+}
+#drop-container {
+  text-align: center;
+  margin-bottom: 20px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 20px;
+}
+.drop-zone {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 80px;
+  height: 80px;
+  border: 2px dashed #aaa;
+  background-color: #fff;
+  overflow: visible;
+  line-height: normal;
+}
+#plus {
+  font-size: 32px;
+  user-select: none;
+}
+#cards {
+  margin-top: 0;
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  user-select: none;
+  flex-wrap: wrap;
+  max-width: 400px;
+  margin-left: auto;
+  margin-right: auto;
+}
+.card {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  width: 60px;
+  height: 60px;
+  background-color: #ffa;
+  border: 1px solid #aaa;
+  border-radius: 12px;
+  padding: 5px;
+  margin: 5px;
+  user-select: none;
+  text-align: center;
+  touch-action: none;
+  cursor: grab;
+}
+.card strong {
+  font-size: 20px;
+  line-height: 1;
+  margin-bottom: 6px;
+}
+.dots {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  color: white;
+  background-color: #007bff;
+  border-radius: 8px;
+  padding: 4px 8px;
+  user-select: none;
+  min-width: 40px;
+  height: 40px;
+  box-sizing: border-box;
+}
+.dots-row {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  line-height: 1;
+  margin: 1px 0;
+}
+#result {
+  margin-top: 20px;
+  font-size: 22px;
+  color: green;
+  white-space: pre-wrap;
+  min-height: 80px;
+  font-weight: bold;
+  text-align: center;
+  user-select: none;
+}
+.big-circle {
+  width: 72px;
+  height: 72px;
+  margin-bottom: 8px;
+  user-select: none;
+}
