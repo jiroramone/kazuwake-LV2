@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>かずわけゲーム（やさしい版）</title>
+    <!-- Tailwind CSS CDN (カスタムCSSで上書きされる部分が多いですが、念のため残します) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* ユーザー提供のCSSをここに配置 */
+        body {
+            font-family: "Arial", sans-serif;
+            text-align: center;
+            background-color: #f0f8ff;
+            padding: 20px;
+            overflow: hidden; /* 花火キャンバスがはみ出さないように */
+        }
+        h1 {
+            font-size: 28px;
+            color: #444;
+        }
+        #question {
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+        #drop-container {
+            text-align: center;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+        }
+        .drop-zone {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 80px;
+            height: 80px;
+            border: 2px dashed #aaa;
+            background-color: #fff;
+            overflow: visible;
+            line-height: normal;
+        }
+        #plus {
+            font-size: 32px;
+            user-select: none;
+        }
+        #cards {
+            margin-top: 0; /* ユーザー提供CSSに合わせる */
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            user-select: none;
+            flex-wrap: wrap;
+            max-width: 400px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .card {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            width: 75px; /* 変更箇所: 大きさを大きく */
+            height: 75px; /* 変更箇所: 大きさを大きく */
+            background-color: #ffa;
+            border: 1px solid #aaa;
+            border-radius: 12px;
+            padding: 5px;
+            margin: 5px;
+            user-select: none;
+            text-align: center;
+            touch-action: none;
+            cursor: grab;
+        }
+        .card strong {
+            font-size: 20px;
+            line-height: 1;
+            margin-bottom: 4px; /* 変更箇所: 間隔を少し狭める */
+        }
+        .dots {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            color: white;
+            background-color: #007bff;
+            border-radius: 8px;
+            padding: 4px 8px;
+            user-select: none;
+            min-width: 40px;
+            height: 40px;
+            box-sizing: border-box;
+        }
+        .dots-row {
+            display: flex;
+            justify-content: center;
+            gap: 6px;
+            line-height: 1;
+            margin: 1px 0;
+        }
+        #result {
+            margin-top: 0.25rem; /* 間隔をさらに狭める */
+            font-size: 22px;
+            color: green;
+            white-space: pre-wrap;
+            min-height: 80px;
+            font-weight: bold;
+            text-align: center;
+            user-select: none;
+            position: relative; /* 画像を重ねるために必要 */
+            display: flex; /* 子要素を中央に配置するためにflexを使用 */
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        #result div { /* 回答テキストのスタイル */
+            position: relative; /* 画像の上に表示 */
+            z-index: 10; /* 画像より手前に表示 */
+            background-color: rgba(255, 255, 255, 0.7); /* テキストの背景を半透明にして画像を透かす */
+            padding: 0.25rem 0.5rem; /* テキストのパディング */
+            border-radius: 0.5rem;
+        }
+        .big-circle {
+            width: 100px; /* 大きさを大きく */
+            height: 100px; /* 大きさを大きく */
+            margin-bottom: 0; /* 画像とテキストの間隔をなくす */
+            user-select: none;
+            position: absolute; /* 親要素の中央に配置 */
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 15; /* テキストより手前に表示 */
+            opacity: 1; /* 花丸を不透明にする */
+        }
+
+        /* 既存のTailwindクラスと競合する可能性のあるカスタムスタイルを調整 */
+        .game-area {
+            /* ユーザー提供CSSにはgame-areaの定義がないため、既存のスタイルを調整 */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #ffffff;
+            padding: 1.5rem; /* スマホでパディングを少し減らす */
+            border-radius: 1.5rem; /* rounded-3xl */
+            box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1); /* shadow-xl */
+            width: 100%;
+            max-width: 800px; /* 最大幅は維持 */
+            box-sizing: border-box;
+        }
+        #cards {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 0.75rem; /* gap-3 カード間のスペースを少し広げる */
+            margin-top: 0.5rem; /* #result と #cards の間隔を狭める */
+            min-height: 6rem; /* Ensure space for cards */
+        }
+        #drop-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px; /* ユーザー提供CSSに合わせる */
+            flex-wrap: wrap; /* 小さい画面で折り返す可能性を考慮 */
+        }
+        .restart-button {
+            background-color: #10b981; /* Green button */
+            color: white;
+            padding: 0.75rem 1.5rem; /* py-3 px-6 */
+            border-radius: 0.75rem; /* rounded-xl */
+            font-size: 1.125rem; /* text-lg */
+            font-weight: bold;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.2s ease-in-out, transform 0.1s ease-in-out;
+            margin-top: 2rem; /* mt-8 */
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .restart-button:hover {
+            background-color: #059669; /* Darker green on hover */
+            transform: translateY(-2px);
+        }
+        .restart-button:active {
+            transform: translateY(0);
+            box-shadow: none;
+        }
+
+        /* Small screen specific adjustments */
+        @media (max-width: 640px) {
+            h1 {
+                font-size: 1.75rem;
+            }
+            #question {
+                font-size: 1.5rem;
+            }
+            #plus {
+                font-size: 1.5rem;
+                margin: 0 0.5rem;
+            }
+            .card {
+                width: 65px; /* スマホで調整 */
+                height: 65px; /* スマホで調整 */
+                margin: 3px;
+            }
+            .drop-zone {
+                width: 70px; /* スマホで調整 */
+                height: 70px; /* スマホで調整 */
+                margin: 3px;
+            }
+            .card strong {
+                font-size: 1.25rem;
+            }
+            .dots-row {
+                font-size: 0.65rem;
+            }
+            #cards {
+                gap: 5px; /* ユーザー提供CSSの10pxからさらに狭める */
+            }
+            .restart-button {
+                font-size: 1rem;
+                padding: 0.6rem 1.2rem;
+            }
+        }
+
+        /* 花火キャンバスのスタイル */
+        #fireworksCanvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 9999; /* 最前面に表示 */
+            pointer-events: none; /* クリックイベントを透過させる */
+            background-color: black; /* 変更箇所: 背景を完全に不透明な黒に */
+        }
+    </style>
+</head>
+<body>
+    <div class="game-area">
+        <h1>かずわけゲーム（やさしい版）</h1>
+
+        <div id="question">問題</div>
+
+        <div id="drop-container">
+            <div class="drop-zone" id="slot1"></div>
+            <span id="plus">と</span>
+            <div class="drop-zone" id="slot2"></div>
+        </div>
+
+        <!-- #result の位置を #drop-container と #cards の間に移動 -->
+        <div id="result"></div>
+
+        <div id="cards"></div>
+        
+        <button id="restartButton">もういちど はじめから</button>
+    </div>
+
+<script>
+    const allTargets = [3, 4, 5, 6, 7, 8, 9, 10];
+    let targets = [];
+    let currentIndex = 0;
+    let currentTarget = null;
+    const usedPairs = new Set();
+    let draggedCard = null; // To store the card being dragged (for desktop)
+    let touchedCard = null; // To store the card being touched (for mobile)
+
+    // Utility function to shuffle an array
+    function shuffleArray(array) {
+        for (let i = array.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [array[i], array[j]] = [array[j], array[i]];
+        }
+    }
+
+    /**
+     * Creates a number card with value and dots representation.
+     * @param {number} n - The number value for the card.
+     * @param {boolean} isDraggable - True if the card should be draggable/touchable (for cards in the 'cards' area).
+     * @returns {HTMLDivElement} The created card element.
+     */
+    function createCard(n, isDraggable = false) {
+        const div = document.createElement('div');
+        div.className = 'card'; // 提供されたCSSの.cardスタイルが適用される
+        div.dataset.value = n; // Store the number value
+
+        let dotsHtmlContent = ''; // ドットのHTML内容
+        if (n <= 5) {
+            // For numbers 1-5, display dots in a single row
+            dotsHtmlContent = `<span class="dots-row">${'●'.repeat(n)}</span>`;
+        } else {
+            // For numbers 6-10, display dots in two rows for better visual clarity
+            let topCount, bottomCount;
+            switch (n) {
+                case 6: topCount = 3; bottomCount = 3; break;
+                case 7: topCount = 4; bottomCount = 3; break;
+                case 8: topCount = 4; bottomCount = 4; break;
+                case 9: topCount = 5; bottomCount = 4; break;
+                case 10: topCount = 5; bottomCount = 5; break;
+                default:
+                    // Fallback for unexpected numbers (should not happen with current targets)
+                    topCount = Math.ceil(n / 2);
+                    bottomCount = n - topCount;
+            }
+            dotsHtmlContent =
+                `<span class="dots-row">${'●'.repeat(topCount)}</span>` +
+                `<span class="dots-row">${'●'.repeat(bottomCount)}</span>`;
+        }
+
+        // Set the inner HTML of the card. .dotsクラスを持つdivでドットを囲む。
+        div.innerHTML = `<strong>${n}</strong><div class="dots">${dotsHtmlContent}</div>`;
+
+        if (isDraggable) {
+            div.classList.add('draggable-card'); // Add a class for draggable styling (ユーザーCSSで定義)
+            div.setAttribute('draggable', true); // Make the card draggable
+
+            // Add event listeners for drag and touch interactions
+            div.addEventListener('dragstart', (e) => {
+                draggedCard = e.currentTarget; // Store reference to the dragged card
+                e.dataTransfer.setData("text/plain", n); // Set data for drag operation
+                e.dataTransfer.effectAllowed = "move"; // Indicate a move operation
+            });
+
+            div.addEventListener('touchstart', touchStart, { passive: false }); // Use passive: false for preventDefault
+            div.addEventListener('touchmove', touchMove, { passive: false });
+            div.addEventListener('touchend', touchEnd);
+        }
+
+        return div;
+    }
+
+    // Populates the card area with numbers from 0 up to the current target
+    function setupCards(target) {
+        const cardArea = document.getElementById('cards');
+        cardArea.innerHTML = ''; // Clear existing cards
+        // Create cards for numbers from 0 to the target number, making them draggable
+        for (let i = 0; i <= target; i++) {
+            const card = createCard(i, true); // Pass true to make these cards draggable
+            cardArea.appendChild(card);
+        }
+    }
+
+    // Allows dropping elements into the drop zone
+    function allowDrop(ev) {
+        ev.preventDefault(); // Prevent default to allow drop
+        // Add a visual indicator when an element is dragged over
+        if (ev.target.classList.contains("drop-zone")) {
+            ev.target.classList.add("drag-over");
+        }
+    }
+
+    // Removes the visual indicator when a dragged element leaves the drop zone
+    function dragLeave(ev) {
+        if (ev.target.classList.contains("drop-zone")) {
+            ev.target.classList.remove("drag-over");
+        }
+    }
+
+    // Handles the drop event for desktop drag-and-drop
+    function drop(ev) {
+        ev.preventDefault(); // Prevent default drop behavior
+        const value = parseInt(ev.dataTransfer.getData("text/plain")); // Get the value of the dropped card
+        const dropZone = ev.target.closest('.drop-zone'); // Find the closest drop zone element
+
+        if (!dropZone) return; // If not dropped on a drop zone, do nothing
+
+        dropZone.classList.remove("drag-over"); // Remove drag-over styling
+
+        // If there's already a card in the drop zone, clear it (the old card is implicitly "returned" to the pool)
+        if (dropZone.firstElementChild) {
+            dropZone.innerHTML = '';
+        }
+        
+        // Create a new card element for the dropped value and append it to the drop zone
+        const newCard = createCard(value);
+        dropZone.appendChild(newCard);
+
+        checkAnswer(); // Check the answer after dropping
+        draggedCard = null; // Clear the dragged card reference
+    }
+
+    // Resets the content of both drop slots and the result area
+    function resetSlots() {
+        document.getElementById("slot1").innerHTML = '';
+        document.getElementById("slot2").innerHTML = '';
+        updateResult(''); // 結果メッセージと画像をクリア
+    }
+
+    // Updates the question displayed to the user
+    function updateQuestion() {
+        // Check if all questions have been cleared
+        if (currentIndex >= targets.length) {
+            updateResult("🎉 すべてのもんだいをクリアしました！おめでとう！", 'success');
+            document.getElementById('question').textContent = "おしまい";
+            resetSlots();
+            document.getElementById('cards').innerHTML = ''; // Clear all cards
+            showFireworks(); // 全問クリア時に花火を表示
+            return;
+        }
+
+        currentTarget = targets[currentIndex]; // Get the current target number
+        document.getElementById('question').textContent = `${currentTarget} は いくつ と いくつ？`;
+        resetSlots(); // Clear the drop slots (これにより結果メッセージもクリアされる)
+        setupCards(currentTarget); // Re-populate cards for the new target
+        usedPairs.clear(); // Clear used pairs for the new question
+        // updateResult(''); // resetSlots()で呼ばれるため不要
+    }
+
+    // Updates the result message displayed to the user
+    function updateResult(text, type = '') {
+        const result = document.getElementById('result');
+        result.innerHTML = ''; // Clear previous content
+        result.className = ''; // クラスをリセット
+        result.classList.add('result-text'); // ユーザー提供CSSの#resultスタイルが適用されるように調整
+
+        if (type === 'success') {
+            // Display a success message with a hanamaru image
+            result.classList.add('correct-feedback');
+            // Using the uploaded hanamaru.png image URL.
+            result.innerHTML = `
+                <img src="hanamaru.png" alt="花丸" class="big-circle">
+                <div>${text.replace(/\n/g, '<br>')}</div>
+            `;
+        } else if (type === 'incorrect') {
+            result.classList.add('incorrect-feedback');
+            result.textContent = text;
+        } else if (type === 'info') {
+            result.classList.add('info-feedback');
+            result.textContent = text;
+        } else {
+            result.textContent = text; // Default text
+        }
+    }
+
+    // Checks if the numbers in the slots add up to the current target
+    function checkAnswer() {
+        const slot1 = document.getElementById("slot1").firstElementChild;
+        const slot2 = document.getElementById("slot2").firstElementChild;
+
+        // Ensure both slots have cards
+        if (!slot1 || !slot2) return;
+
+        // Parse the values from the cards
+        const a = parseInt(slot1.dataset.value);
+        const b = parseInt(slot2.dataset.value);
+
+        // Check if the sum is correct
+        if (a + b === currentTarget) {
+            // Create a unique key for the pair to track used combinations (e.g., "2,3" is same as "3,2")
+            const key = [a, b].sort((x, y) => x - y).join(',');
+            if (!usedPairs.has(key)) {
+                usedPairs.add(key); // Add the new valid pair
+                // Calculate remaining combinations
+                // For target N, pairs are (0,N), (1,N-1), ..., (floor(N/2), ceil(N/2))
+                // Number of unique pairs is floor(N/2) + 1
+                const totalPairs = Math.floor(currentTarget / 2) + 1;
+                const left = totalPairs - usedPairs.size;
+
+                let message = `せいかい！ ${a} と ${b} で ${currentTarget} になるよ！\n`;
+                message += `のこりのくみあわせ：${left}こ`;
+                updateResult(message, 'success');
+
+                if (left === 0) {
+                    // All combinations found, move to the next question
+                    message += "\nぜんぶの くみあわせが みつかったよ！つぎのもんだいへ！";
+                    updateResult(message, 'success');
+                    currentIndex++;
+                    setTimeout(() => {
+                        updateQuestion(); // Load next question after a short delay
+                    }, 1500); // Increased delay for better user experience
+                }
+                setTimeout(() => {
+                    resetSlots(); // Clear slots after a short delay
+                }, 1500); // 変更箇所: 1.5秒に設定
+            } else {
+                updateResult("その くみあわせは もう こたえたよ。", 'info');
+                setTimeout(() => {
+                    resetSlots();
+                }, 1500); // 変更箇所: 1.5秒に設定
+            }
+        } else {
+            updateResult("ちがうよ。もう いちど！", 'incorrect');
+            setTimeout(() => {
+                resetSlots();
+            }, 1500); // 変更箇所: 1.5秒に設定
+        }
+    }
+
+    // --- Touch Event Handlers ---
+
+    // Stores the touched card on touch start
+    function touchStart(e) {
+        e.preventDefault(); // Prevent default scrolling/zooming
+        touchedCard = e.currentTarget;
+        // Optionally, add a visual feedback like a class for active state
+        touchedCard.classList.add('scale-105', 'shadow-lg');
+    }
+
+    // Prevents default touchmove behavior (like scrolling)
+    function touchMove(e) {
+        e.preventDefault();
+        // Optional: Implement visual feedback for dragging (e.g., move a ghost element)
+        // This is more complex and might not be necessary for a "simple" version.
+    }
+
+    // Handles the touch end event to drop the card
+    function touchEnd(e) {
+        const touch = e.changedTouches[0];
+        // Find the element under the touch point
+        const elem = document.elementFromPoint(touch.clientX, touch.clientY);
+        const dropZone = elem ? elem.closest('.drop-zone') : null; // Find the closest drop zone element
+
+        if (touchedCard) {
+            touchedCard.classList.remove('scale-105', 'shadow-lg'); // Remove active state
+        }
+
+        if (dropZone) {
+            const value = parseInt(touchedCard.dataset.value); // Get the value of the touched card
+
+            // If there's already a card in the drop zone, clear it
+            if (dropZone.firstElementChild) {
+                dropZone.innerHTML = '';
+            }
+
+            // Create a new card element for the touched value and append it to the drop zone
+            const newCard = createCard(value);
+            dropZone.appendChild(newCard);
+
+            checkAnswer(); // Check the answer
+        } else if (touchedCard && touchedCard.parentElement.classList.contains('drop-zone')) {
+            // If the card was in a drop zone but dropped outside, remove it from the slot
+            touchedCard.parentElement.innerHTML = '';
+        }
+        touchedCard = null; // Clear the touched card reference
+    }
+
+    // --- Fireworks Animation ---
+    let fireworksCanvas = null;
+    let fireworksCtx = null;
+    let fireworks = [];
+    let animationFrameId = null;
+
+    // 花火のパーティクルを表現するクラス
+    class FireworkParticle {
+        constructor(x, y, radius, color, alpha, speed) {
+            this.x = x;
+            this.y = y;
+            this.radius = radius;
+            this.color = color;
+            this.alpha = alpha;
+            this.speed = speed;
+        }
+
+        update() {
+            this.radius += this.speed;
+            this.alpha -= 0.01; // 徐々に透明になる
+        }
+
+        draw() {
+            if (fireworksCtx) {
+                fireworksCtx.beginPath();
+                fireworksCtx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                fireworksCtx.fillStyle = `rgba(${this.color.r}, ${this.color.g}, ${this.color.b}, ${this.alpha})`;
+                fireworksCtx.fill();
+            }
+        }
+    }
+
+    // 花火アニメーションを表示する関数
+    function showFireworks() {
+        // 既存のキャンバスがあれば削除
+        if (fireworksCanvas) {
+            fireworksCanvas.remove();
+            cancelAnimationFrame(animationFrameId);
+            fireworks = [];
+        }
+
+        fireworksCanvas = document.createElement('canvas');
+        fireworksCanvas.id = 'fireworksCanvas';
+        document.body.appendChild(fireworksCanvas);
+
+        fireworksCtx = fireworksCanvas.getContext('2d');
+        fireworksCanvas.width = window.innerWidth;
+        fireworksCanvas.height = window.innerHeight;
+
+        // リサイズイベントでキャンバスサイズを更新
+        window.addEventListener('resize', () => {
+            if (fireworksCanvas) {
+                fireworksCanvas.width = window.innerWidth;
+                fireworksCanvas.height = window.innerHeight;
+            }
+        });
+
+        // 花火を生成する間隔 (ミリ秒)
+        const spawnInterval = 300;
+        let lastSpawnTime = 0;
+
+        function animateFireworks(currentTime) {
+            animationFrameId = requestAnimationFrame(animateFireworks);
+
+            fireworksCtx.clearRect(0, 0, fireworksCanvas.width, fireworksCanvas.height);
+
+            // 新しい花火を生成
+            if (currentTime - lastSpawnTime > spawnInterval) {
+                const x = Math.random() * fireworksCanvas.width;
+                const y = Math.random() * fireworksCanvas.height * 0.8; // 画面上部2/3に集中
+                const startRadius = 5;
+                const speed = 1 + Math.random() * 2;
+                const color = {
+                    r: Math.floor(Math.random() * 255),
+                    g: Math.floor(Math.random() * 255),
+                    b: Math.floor(Math.random() * 255)
+                };
+                const initialAlpha = 1;
+
+                // 複数のパーティクルで一つの花火を表現
+                for (let i = 0; i < 10; i++) { // 10個のパーティクルで一つの花火
+                    fireworks.push(new FireworkParticle(x, y, startRadius, color, initialAlpha, speed));
+                }
+                lastSpawnTime = currentTime;
+            }
+
+            // 花火を更新・描画
+            for (let i = fireworks.length - 1; i >= 0; i--) {
+                const p = fireworks[i];
+                p.update();
+                p.draw();
+
+                if (p.alpha <= 0) {
+                    fireworks.splice(i, 1); // 透明になったパーティクルを削除
+                }
+            }
+        }
+
+        // アニメーション開始
+        animateFireworks(0);
+
+        // 5秒後に花火を停止し、キャンバスを削除
+        setTimeout(() => {
+            cancelAnimationFrame(animationFrameId);
+            if (fireworksCanvas) {
+                fireworksCanvas.remove();
+            }
+            fireworks = []; // パーティクル配列をクリア
+        }, 5000); // 5秒間表示
+    }
+
+    // Initializes the game
+    function startGame() {
+        targets = allTargets.slice(); // Copy all targets
+        shuffleArray(targets); // Randomize the order of questions
+        currentIndex = 0; // Start from the first question
+        updateQuestion(); // Display the first question
+        document.getElementById('restartButton').addEventListener('click', startGame);
+
+        // Add event listeners to drop zones
+        document.getElementById('slot1').addEventListener('dragover', allowDrop);
+        document.getElementById('slot1').addEventListener('dragleave', dragLeave);
+        document.getElementById('slot1').addEventListener('drop', drop);
+
+        document.getElementById('slot2').addEventListener('dragover', allowDrop);
+        document.getElementById('slot2').addEventListener('dragleave', dragLeave);
+        document.getElementById('slot2').addEventListener('drop', drop);
+    }
+
+    // Start the game when the page loads
+    window.onload = startGame;
+
+</script>
+</body>
+</html>
